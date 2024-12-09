@@ -81,7 +81,7 @@ case "$pkg" in
         sudo pacman -S base-devel rust cmake qt5-base libibus zstd git
         ;;
     dnf)
-        sudo dnf install @buildsys-build rust cargo cmake qt5-qtdeclarative-devel ibus-devel libzstd-devel git
+        sudo dnf install @development-tools rust cargo cmake qt5-qtdeclarative-devel ibus-devel libzstd-devel git
         ;;
     zypper)
         sudo zypper install libQt5Core-devel libQt5Widgets-devel libQt5Network-devel libzstd-devel libzstd1 cmake make ninja rust ibus-devel ibus clang gcc patterns-devel-base-devel_basis git
