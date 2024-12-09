@@ -62,6 +62,10 @@ elif command -v xbps-install &> /dev/null; then
     pkg="xbps-install"
 elif command -v apt &> /dev/null; then
     pkg="apt"
+elif command -v eopkg &> /dev/null; then
+    pkg="eopkg"
+elif command -v apk &> /dev/null; then
+    pkg="apk"
 else
     echo "No supported package manager found!"
     exit 1
@@ -87,6 +91,12 @@ case "$pkg" in
         ;;
     apt)
         sudo apt-get install build-essential rustc cargo cmake libibus-1.0-dev qtbase5-dev qtbase5-dev-tools libzstd-dev git
+        ;;
+    eopkg)
+        sudo eopkg install -c system.devel rust qt5-base-devel ibus-devel zstd-devel git
+        ;;
+    apk)
+        sudo apk add git cmake build-base gcc g++ rust cargo ibus-dev gettext-dev qt5-qtbase-dev qt5-qttools-dev qt5-qtdeclarative-dev 
         ;;
     *)
         echo "Unsupported package manager: $pkg"
