@@ -1,7 +1,10 @@
 #!/bin/env bash
 
-#### OpenBangla Keyboard (Develop Branch) for fcitx5 Installation Script ####
-#### Js Bro ( https://github.com/me-js-bro ) ####
+#### OpenBangla Keyboard (Develop Branch) for ibus Installation Script ####
+#### ( https://github.com/asifakonjee ) ####
+
+# ibus.sh ( install script with ibus )
+
 # color defination
 red="\e[1;31m"
 green="\e[1;32m"
@@ -22,12 +25,16 @@ error="[${red} ERROR ${end}]"
 
 display_text() {
     cat << "EOF"
-      ___                       ____                        _                _  __             _                             _
-     / _ \  _ __    ___  _ __  | __ )   __ _  _ __    __ _ | |  __ _        | |/ / ___  _   _ | |__    ___    __ _  _ __  __| |
-    | | | || '_ \  / _ \| '_ \ |  _ \  / _` || '_ \  / _` || | / _` | _____ | ' / / _ \| | | || '_ \  / _ \  / _` || '__|/ _` |
-    | |_| || |_) ||  __/| | | || |_) || (_| || | | || (_| || || (_| ||_____|| . \|  __/| |_| || |_) || (_) || (_| || |  | (_| |
-     \___/ | .__/  \___||_| |_||____/  \__,_||_| |_| \__, ||_| \__,_|       |_|\_\\___| \__, ||_.__/  \___/  \__,_||_|   \__,_|
-           |_|                                       |___/                              |___/
+  ____                   ___                    __     
+ / __ \ ___  ___  ___   / _ ) ___ _ ___  ___ _ / /___ _
+/ /_/ // _ \/ -_)/ _ \ / _  |/ _ `// _ \/ _ `// // _ `/
+\____// .__/\__//_//_//____/ \_,_//_//_/\_, //_/ \_,_/ 
+     /_/                               /___/           
+   __ __            __                      __         
+  / //_/___  __ __ / /  ___  ___ _ ____ ___/ /         
+ / ,<  / -_)/ // // _ \/ _ \/ _ `// __// _  /          
+/_/|_| \__/ \_, //_.__/\___/\_,_//_/   \_,_/           
+           /___/                                       
 
 EOF
 }
@@ -39,13 +46,11 @@ printf " \n \n"
 ###------ Startup ------###
 
 # finding the presend directory and log file
-present_dir=`pwd`
+present_dir="$(dirname "$(realpath "$0")")"
 cache_dir="$present_dir/.cache"
 
 # log directory
-log_dir="$present_dir/.openbangla-keyboard"
-log="$log_dir"/Install.log
-mkdir -p "$log_dir"
+log="$present_dir/Install.log"
 if [[ ! -f "$log" ]]; then
     touch "$log"
 fi
@@ -73,24 +78,24 @@ fi
 
 
 # Print message about installing necessary packages
-printf "${attention} - Installing necessary packages using ${pkg} \n"
+printf "${attention}\n!! Installing necessary packages using ${pkg} \n"
 
 # Install required packages based on the detected package manager
 case "$pkg" in
     pacman)
-        sudo pacman -S base-devel rust cmake qt5-base libibus zstd git
+        sudo pacman -S --noconfirm base-devel rust cmake qt5-base libibus zstd git
         ;;
     dnf)
-        sudo dnf install @development-tools rust cargo cmake qt5-qtdeclarative-devel ibus-devel libzstd-devel git
+        sudo dnf install -y @development-tools rust cargo cmake qt5-qtdeclarative-devel ibus-devel libzstd-devel git
         ;;
     zypper)
-        sudo zypper install libQt5Core-devel libQt5Widgets-devel libQt5Network-devel libzstd-devel libzstd1 cmake make ninja rust ibus-devel ibus clang gcc patterns-devel-base-devel_basis git
+        sudo zypper install -y libQt5Core-devel libQt5Widgets-devel libQt5Network-devel libzstd-devel libzstd1 cmake make ninja rust ibus-devel ibus clang gcc patterns-devel-base-devel_basis git
         ;;
     xbps-install)
         sudo xbps-install -y base-devel make cmake rust cargo qt5-declarative-devel libzstd-devel qt5-devel git ibus ibus-devel
         ;;
     apt)
-        sudo apt-get install build-essential rustc cargo cmake libibus-1.0-dev qtbase5-dev qtbase5-dev-tools libzstd-dev git
+        sudo apt-get install -y build-essential rustc cargo cmake libibus-1.0-dev qtbase5-dev qtbase5-dev-tools libzstd-dev git
         ;;
     eopkg)
         sudo eopkg install -c system.devel rust qt5-base-devel ibus-devel zstd-devel git
@@ -99,41 +104,43 @@ case "$pkg" in
         sudo apk add git cmake build-base gcc g++ rust cargo ibus-dev gettext-dev qt5-qtbase-dev qt5-qttools-dev qt5-qtdeclarative-dev 
         ;;
     *)
-        echo "Unsupported package manager: $pkg"
+        printf "${error}\n! Unsupported package manager: $pkg\n"
         exit 1
         ;;
 esac
 
 sleep 1 && clear
 
-printf "${action} - Now building ${yellow}Openbangla Keyboard ${end}...\n"
+printf "${action}\n==> Now building ${orange}Openbangla Keyboard${end}...\n"
 
 if [[ -d "$cache_dir/openbangla-keyboard" ]]; then
-    printf "${note} - Directory '${orange}openbangla-keyboard${end}' was located in the '${cache_dir}' directory. Removing it.\n" && sleep 1
+    printf "${note}\n* Directory '${orange}openbangla-keyboard${end}' was located in the '${cache_dir}' directory. Removing it.\n" && sleep 1
     sudo rm -r "$cache_dir/openbangla-keyboard"
 fi
 
 git clone --recursive https://github.com/OpenBangla/OpenBangla-Keyboard.git "$cache_dir/openbangla-keyboard" 2>&1 | tee -a "$log" || { printf "${error} - Sorry, could not clone openbangla-keyboard repository\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Move into the cloned directory
-cd "$cache_dir/openbangla-keyboard" || { printf "${error} - Unable to change directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+cd "$cache_dir/openbangla-keyboard" || { printf "${error}\n! Unable to change directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Create build directory
-git checkout develop 2>&1 | tee -a "$log" || { printf "${error} - Unable to checkout develop branch\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+git checkout develop 2>&1 | tee -a "$log" || { printf "${error}\n! Unable to checkout develop branch\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Create build directory
-git submodule update 2>&1 | tee -a "$log" || { printf "${error} - Unable to update git submodule\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+git submodule update 2>&1 | tee -a "$log" || { printf "${error}\n! Unable to update git submodule\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Create build directory
-mkdir build 2>&1 | tee -a "$log" || { printf "${error} - Unable to create build directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+mkdir build 2>&1 | tee -a "$log" || { printf "${error}\n! Unable to create build directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
-cd build || { printf "${error} - Unable to change directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+cd build || { printf "${error}\n! Unable to change directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Run CMake to configure the build
-cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_IBUS=ON 2>&1 | tee -a "$log" || { printf "${error} - CMake configuration failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_IBUS=ON 2>&1 | tee -a "$log" || { printf "${error}\n! CMake configuration failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Build the project
-make 2>&1 | tee -a "$log" || { printf "${error} - Build failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+make 2>&1 | tee -a "$log" || { printf "${error}\n! Build failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
 
 # Install the project
-sudo make install 2>&1 | tee -a "$log" || { printf "${error} - Installation failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+sudo make install 2>&1 | tee -a "$log" || { printf "${error}\n! Installation failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+
+exit 0
