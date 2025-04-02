@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+
+#### OpenBangla Keyboard (Develop Branch) for fcitx5 Installation Script ####
+#### ( https://github.com/asifakonjee ) ####
+
+# Color definitions
+red="\e[1;31m"
+green="\e[1;32m"
+yellow="\e[1;33m"
+blue="\e[1;34m"
+magenta="\e[1;35m"
+cyan="\e[1;36m"
+orange="\e[38;5;214m"
+end="\e[0m"
+
+# Message prefixes
+attention="[${orange} ATTENTION ${end}]"
+action="[${green} ACTION ${end}]"
+note="[${magenta} NOTE ${end}]"
+done="[${cyan} DONE ${end}]"
+ask="[${orange} QUESTION ${end}]"
+error="[${red} ERROR ${end}]"
+
+display_text() {
+    cat << "EOF"
+  ____                   ___                    __
+ / __ \ ___  ___  ___   / _ ) ___ _ ___  ___ _ / /___ _
+/ /_/ // _ \/ -_)/ _ \ / _  |/ _ `// _ \/ _ `// // _ `/
+\____// .__/\__//_//_//____/ \_,_//_//_/\_, //_/ \_,_/
+     /_/                               /___/
+   __ __            __                      __
+  / //_/___  __ __ / /  ___  ___ _ ____ ___/ /
+ / ,<  / -_)/ // // _ \/ _ \/ _ `// __// _  /
+/_/|_| \__/ \_, //_.__/\___/\_,_//_/   \_,_/
+           /___/
+
+EOF
+}
+
+clear && display_text
+printf " \n \n"
+
+###------ Startup ------###
+
+# Set up working directories
+present_dir="$(dirname "$(realpath "$0")")"
+cache_dir="$present_dir/.cache"
+mkdir -p "$cache_dir"
+
+# Log file
+log="$present_dir/Install.log"
+touch "$log"
+
+# Detect package manager
+if command -v pacman &> /dev/null; then
+    pkg="pacman"
+elif command -v dnf &> /dev/null; then
+    pkg="dnf"
+elif command -v zypper &> /dev/null; then
+    pkg="zypper"
+elif command -v xbps-install &> /dev/null; then
+    pkg="xbps-install"
+elif command -v apt &> /dev/null; then
+    pkg="apt"
+elif command -v eopkg &> /dev/null; then
+    pkg="eopkg"
+elif command -v apk &> /dev/null; then
+    pkg="apk"
+else
+    printf "${error}\n! No supported package manager found!\n"
+    exit 1
+fi
+
+# Print package installation message
+printf "${attention}\n!! Installing necessary packages using ${pkg} \n"
+
+# Install required packages
+case "$pkg" in
+    pacman)
+        sudo pacman -S --noconfirm base-devel rust cmake qt5-base libibus zstd fcitx5 fcitx5-configtool fcitx5-qt fcitx5-gtk git
+        ;;
+    dnf)
+        sudo dnf install -y @development-tools rust cargo cmake qt5-qtdeclarative-devel ibus-devel libzstd-devel git fcitx5 fcitx5-configtool fcitx5-devel fcitx5-qt5
+        ;;
+    zypper)
+        sudo zypper in -y libQt5Core-devel libQt5Widgets-devel libQt5Network-devel libzstd-devel libzstd1 cmake make ninja rust ibus-devel ibus clang gcc patterns-devel-base-devel_basis git fcitx5-devel fcitx5 fcitx5-configtool
+        ;;
+    xbps-install)
+        sudo xbps-install -y base-devel make cmake rust cargo qt5-declarative-devel libzstd-devel qt5-devel git ibus ibus-devel fcitx5 libfcitx5-devel fcitx5-configtool
+        ;;
+    apt)
+        sudo apt install -y build-essential rustc cargo cmake libibus-1.0-dev qtbase5-dev qtbase5-dev-tools libzstd-dev libfcitx5core-dev fcitx5 fcitx5-config-qt git
+        ;;
+    *)
+        printf "${error}\n! Unsupported package manager: $pkg\n"
+        exit 1
+        ;;
+esac
+
+printf "${action}\n==> Now building ${orange}OpenBangla Keyboard${end}...\n"
+
+# Remove existing directory if it exists
+if [[ -d "$cache_dir/openbangla-keyboard" ]]; then
+    printf "${note}\n* Removing old '${orange}openbangla-keyboard${end}' directory.\n"
+    sudo rm -r "$cache_dir/openbangla-keyboard"
+fi
+
+# Clone repository
+git clone --recursive https://github.com/OpenBangla/OpenBangla-Keyboard.git "$cache_dir/openbangla-keyboard" 2>&1 | tee -a "$log" || {
+    printf "${error} - Could not clone OpenBangla Keyboard repository\n"
+    exit 1
+}
+
+# Move into the cloned directory
+cd "$cache_dir/openbangla-keyboard" || {
+    printf "${error}\n! Unable to change directory\n"
+    exit 1
+}
+
+# Checkout the develop branch
+git checkout develop 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Unable to checkout develop branch\n"
+    exit 1
+}
+
+# Update submodules
+git submodule update --init --recursive 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Unable to update git submodules\n"
+    exit 1
+}
+
+# Create and enter the build directory
+mkdir build && cd build || {
+    printf "${error}\n! Unable to create and change to build directory\n"
+    exit 1
+}
+
+# Run CMake
+if [[ "$pkg" == "pacman" ]]; then
+    cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_FCITX=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 2>&1 | tee -a "$log" || {
+        printf "${error}\n! CMake configuration failed\n"
+        exit 1
+    }
+else
+    cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_FCITX=ON 2>&1 | tee -a "$log" || {
+        printf "${error}\n! CMake configuration failed\n"
+        exit 1
+    }
+fi
+
+# Build the project
+make -j$(nproc) 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Build failed\n"
+    exit 1
+}
+
+# Install the project
+sudo make install 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Installation failed\n"
+    exit 1
+}
+
+printf "${done}\n==> Installation completed successfully!\n"
+
+exit 0
