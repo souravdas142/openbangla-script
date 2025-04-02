@@ -161,6 +161,12 @@ else
     }
 fi
 
+# Build the project
+make -j$(nproc) 2>&1 | tee -a "$log" || { 
+    printf "${error}\n! Build failed\n"
+    exit 1
+}
+
 # Install the project
 sudo make install 2>&1 | tee -a "$log" || {
     printf "${error}\n! Installation failed\n"
