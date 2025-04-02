@@ -118,29 +118,55 @@ if [[ -d "$cache_dir/openbangla-keyboard" ]]; then
     sudo rm -r "$cache_dir/openbangla-keyboard"
 fi
 
-git clone --recursive https://github.com/OpenBangla/OpenBangla-Keyboard.git "$cache_dir/openbangla-keyboard" 2>&1 | tee -a "$log" || { printf "${error} - Sorry, could not clone openbangla-keyboard repository\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+# Clone repository
+git clone --recursive https://github.com/OpenBangla/OpenBangla-Keyboard.git "$cache_dir/openbangla-keyboard" 2>&1 | tee -a "$log" || {
+    printf "${error} - Could not clone OpenBangla Keyboard repository\n"
+    exit 1
+}
 
 # Move into the cloned directory
-cd "$cache_dir/openbangla-keyboard" || { printf "${error}\n! Unable to change directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+cd "$cache_dir/openbangla-keyboard" || {
+    printf "${error}\n! Unable to change directory\n"
+    exit 1
+}
 
-# Create build directory
-git checkout develop 2>&1 | tee -a "$log" || { printf "${error}\n! Unable to checkout develop branch\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+# Checkout the develop branch
+git checkout develop 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Unable to checkout develop branch\n"
+    exit 1
+}
 
-# Create build directory
-git submodule update 2>&1 | tee -a "$log" || { printf "${error}\n! Unable to update git submodule\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+# Update submodules
+git submodule update --init --recursive 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Unable to update git submodules\n"
+    exit 1
+}
 
-# Create build directory
-mkdir build 2>&1 | tee -a "$log" || { printf "${error}\n! Unable to create build directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+# Create and enter the build directory
+mkdir build && cd build || {
+    printf "${error}\n! Unable to create and change to build directory\n"
+    exit 1
+}
 
-cd build || { printf "${error}\n! Unable to change directory\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
-
-# Run CMake to configure the build
-cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_IBUS=ON 2>&1 | tee -a "$log" || { printf "${error}\n! CMake configuration failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
-
-# Build the project
-make 2>&1 | tee -a "$log" || { printf "${error}\n! Build failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+# Run CMake
+if [[ "$pkg" == "pacman" ]]; then
+    cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_IBUS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 2>&1 | tee -a "$log" || {
+        printf "${error}\n! CMake configuration failed\n"
+        exit 1
+    }
+else
+    cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_IBUS=ON 2>&1 | tee -a "$log" || {
+        printf "${error}\n! CMake configuration failed\n"
+        exit 1
+    }
+fi
 
 # Install the project
-sudo make install 2>&1 | tee -a "$log" || { printf "${error}\n! Installation failed\n" 2>&1 | tee -a >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "$log"); exit 1; }
+sudo make install 2>&1 | tee -a "$log" || {
+    printf "${error}\n! Installation failed\n"
+    exit 1
+}
+
+printf "${done}\n==> Installation completed successfully!\n"
 
 exit 0
