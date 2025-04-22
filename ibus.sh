@@ -101,7 +101,28 @@ case "$pkg" in
         sudo eopkg install -c system.devel rust qt5-base-devel ibus-devel zstd-devel git
         ;;
     apk)
-        sudo apk add git cmake build-base gcc g++ rust cargo ibus-dev gettext-dev qt5-qtbase-dev qt5-qttools-dev qt5-qtdeclarative-dev 
+        sudo apk add git cmake build-base gcc g++ rust cargo curl ibus-dev gettext-dev qt5-qtbase-dev qt5-qttools-dev qt5-qtdeclarative-dev 
+        
+        ### Rust upgrade for apt ###
+        printf "${note}\n* Detected Debian-based system. Ensuring Rust is up-to-date via rustup...\n"
+
+        # Remove old system Rust
+        sudo apt remove -y rustc cargo
+
+        # Install rustup
+        if ! command -v rustup &>/dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
+        fi
+
+        # Ensure rustup is in PATH
+        export PATH="$HOME/.cargo/bin:$PATH"
+
+        # Update to latest stable Rust
+        rustup install stable
+        rustup default stable
+
+        printf "${done}\n==> Rust has been installed via rustup (version: $(rustc --version))\n"
         ;;
     *)
         printf "${error}\n! Unsupported package manager: $pkg\n"
